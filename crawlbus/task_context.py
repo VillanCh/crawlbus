@@ -7,15 +7,11 @@ import bs4
 from urllib.parse import urljoin, urlparse
 from . import reqfilter
 from . import outils
+from . import config
+
+global_config = config.global_config
 
 logger = outils.get_logger('crawlbus')
-
-FILE_SUFFIX_BLACKLIST = [
-    ".pdf", ".zip",
-    ".docx", ".doc", ".ppt", "pptx",
-    ".jpg", ".png", ".gif", ".jpeg"
-    # ".js", ".css"
-]
 
 
 class TaskContext:
@@ -29,9 +25,13 @@ class TaskContext:
 
         self.callback_manager = callback_manager
 
-        self.reqfilter = reqfilter.FakeStaticPathFilter(0)
+        self.reqfilter = reqfilter.FakeStaticPathFilter(
+            distance=global_config.url_simhash_distance,
+            bloomfilter=None,
+            filter_dothtml=global_config.filter_dothtml,
+            ignore_param_value=global_config.ignore_param_value
+        )
         self.filterlock = threading.Lock()
-        self.options = {}
 
     def emit(self):
         """"""
@@ -41,6 +41,11 @@ class TaskContext:
         """"""
         logger.info("request url: {}".format(req.url))
         req = self.session.prepare_request(req)
+
+        # req hook
+        self.callback_manager.queue_new_req.put_when_existed_handler(
+            (self, req))
+
         rsp = self.session.send(req)
         if not isinstance(rsp, requests.Response):
             raise ValueError(
@@ -66,7 +71,8 @@ class TaskContext:
                 continue
 
             logger.debug("find new url: {}".format(url))
-            self.callback_manager.queue_new_url.put_when_existed_handler((self, url))
+            self.callback_manager.queue_new_url.put_when_existed_handler(
+                (self, url))
 
             if not self._forbid_by_policy(url):
                 self.pool.execute(self.request,
@@ -106,7 +112,7 @@ class TaskContext:
                 return urljoin(self.start_req.url, url)
 
         url = basic()
-        if url and "#" in url:
+        if not global_config.allow_fragment and url and "#" in url:
             return url[:url.index("#")]
         else:
             return url
@@ -125,21 +131,37 @@ class TaskContext:
 
         # static file suffix filter
         _, _ext = os.path.splitext(urli.path)
-        if _ext in FILE_SUFFIX_BLACKLIST:
-            return True
-            # if not urli.query:
-                # return True
-            # else:
-                # return False
+        if _ext in global_config.suffix_blacklist:
+            if not global_config.allow_static_file_with_query:
+                return True
+            else:
+                if not urli.query:
+                    return True
+                else:
+                    return False
 
         # domain restriction
-        if urli.netloc != self.base_domain:
+        if self._filter_by_domain(urli.netloc):
             return True
 
         return False
 
     def build_request_from_url(self, url):
         return requests.Request(url=url,
-                                **self.options.get("default_request_params", {}))
+                                **global_config.default_request_params)
 
+    def _filter_by_domain(self, domain):
+        """"""
+        if not global_config.domain_blacklist and not global_config.domain_whitelist:
+            if self.base_domain != domain:
+                return True
 
+        if domain in global_config.domain_blacklist:
+            return True
+
+        for white in global_config.domain_whitelist:
+            if "*." in white:
+                base = white[white.index("*.") + 2:]
+                return not domain.endswith(base)
+            else:
+                return white != domain
