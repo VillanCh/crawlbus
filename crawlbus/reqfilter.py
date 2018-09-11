@@ -87,7 +87,13 @@ class FakeStaticPathFilter(object):
                     _ret.append(e[:_i])
                 query = "&".join(_ret)
         else:
-            query = parseresult.query
+            if not self.ignore_param_value:
+                query = parseresult.query
+            else:
+                if "=" in parseresult.query:
+                    query = parseresult.query.split("=")[0]
+                else:
+                    query = parseresult.query
         kwargs['query'] = query
         items_str = "".join([f"{key}:{value}" for (key, value) in sorted(iter(kwargs.items()))])
         # ParseResult(scheme, netloc, url, params, query, fragment)
@@ -99,7 +105,6 @@ class FakeStaticPathFilter(object):
             "",  # parseresult.query,
             ""  # parseresult.fragment,
         ])
-
         return f"{items_str}@{url}"
 
     def add_url(self, url, **kwargs):
@@ -126,6 +131,7 @@ class FakeStaticPathFilter(object):
             path = "/"
         _path = self._prehandle_path(path)
         _final = self._concat_url(url, _path, **kwargs)
+
         if _final not in self.bfilter:
             if not self.distance:
                 return False

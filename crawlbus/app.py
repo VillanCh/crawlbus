@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # coding:utf-8
+import logging
 import uuid
 import queue
 from . import pool
@@ -8,7 +9,7 @@ from . import task_context
 
 
 logger = outils.get_logger("crawlbus")
-
+logging.root.addHandler(hdlr=logging.NullHandler())
 
 DEFAULT_CONFIG = {
     "default_request_params": {
@@ -53,6 +54,7 @@ class CrawlBus:
         context = task_context.TaskContext(
             id=id, url=start_url, **request_params)
         context.bind_pool(self.pool)
+        context.options.update(self.config)
         return context
 
     def start_task(self, context: task_context.TaskContext):
