@@ -20,13 +20,14 @@ FILE_SUFFIX_BLACKLIST = [
 
 class TaskContext:
 
-    def __init__(self, id, method, url, headers=None, files=None, data=None, params=None, auth=None, cookies=None, hooks=None, json=None):
-        self.start_req = requests.Request(method, url, headers, files, data,
-                                          params, auth, cookies, hooks, json)
+    def __init__(self, callback_manager, pool, id, url, request_params):
+        self.start_req = requests.Request(url=url, **request_params)
         self.base_domain = urlparse(self.start_req.url).netloc
         self.session = requests.Session()
-        self.pool = None
+        self.pool = pool
         self.id = id
+
+        self.callback_manager = callback_manager
 
         self.reqfilter = reqfilter.FakeStaticPathFilter(0)
         self.filterlock = threading.Lock()
@@ -65,6 +66,7 @@ class TaskContext:
                 continue
 
             logger.debug("find new url: {}".format(url))
+            self.callback_manager.queue_new_url.put_when_existed_handler((self, url))
 
             if not self._forbid_by_policy(url):
                 self.pool.execute(self.request,

@@ -7,7 +7,7 @@ import logging
 logger = outils.get_logger("crawlbus")
 logger.setLevel(logging.INFO)
 
-bus = crawlbus.CrawlBus(url="http://www.leavesongs.com", config={})
+bus = crawlbus.Crawler(url="http://127.0.0.1:8080", config={})
 
 bus.start()
 
