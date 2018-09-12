@@ -10,6 +10,7 @@ from . import pool
 from . import outils
 from . import task_context
 from . import knowledgebase
+from . import config
 
 logger = outils.get_logger("crawlbus")
 logging.root.addHandler(hdlr=logging.NullHandler())
@@ -41,7 +42,8 @@ class _CQueue(object):
 
     def add_handler(self, handler):
         if handler in self._handlers:
-            logger.info('add repeat handler:{} for {}'.format(handler, self.name))
+            logger.info('add repeat handler:{} for {}'.format(
+                handler, self.name))
         else:
             self._handlers.append(handler)
 
@@ -57,41 +59,44 @@ class QueueManager(object):
         self._pool.result_queue.put = self._null
 
         self.queue_new_url = _CQueue(knowledgebase.QUEUE_NEW_URL, self._pool)
+        self.queue_new_req = _CQueue(knowledgebase.QUEUE_NEW_REQ, self._pool)
         self.queues = {
-            knowledgebase.QUEUE_NEW_URL: self.queue_new_url
+            knowledgebase.QUEUE_NEW_URL: self.queue_new_url,
+            knowledgebase.QUEUE_NEW_REQ: self.queue_new_req
         }
 
     def get_queue_by_name(self, queue_name) -> _CQueue:
         return self.queues[queue_name]
 
     def _null(self, item):
+        rz = item.traceback
+        if rz:
+            print(rz)
         pass
-        #rz = item.traceback
-        # print()
 
 
 class Crawler:
 
-    def __init__(self, url=None, config={}):
+    def __init__(self, url=None, user_config={}):
         self.start_url = url
-        self.config = DEFAULT_CONFIG
-        self.config.update(config)
+        self.config = config.global_config
+        self.config.merge_config_from_dict(user_config)
 
-        self.options = self.config.get("options", {})
-
-        self.pool = pool.Pool(self.options.get('poolsize', 20))
+        self.pool = pool.Pool(self.config.poolsize)
         self.pool.start()
 
         self.contexts = {}
 
         # queue manager
-        self.queue_manager = QueueManager(self.options.get("callback_poolsize", 5))
+        self.queue_manager = QueueManager(
+            self.config.callback_poolsize
+        )
 
     def start(self):
         """"""
         _id = uuid.uuid4().hex
-        context = self.create_task_context(self.start_url, self.config.get(
-            "default_request_params"), id=_id)
+        context = self.create_task_context(
+            self.start_url, self.config.default_request_params, id=_id)
         if _id not in self.contexts:
             self.contexts[_id] = context
         else:
@@ -106,7 +111,6 @@ class Crawler:
             callback_manager=self.queue_manager,
             pool=self.pool,
             id=id, url=start_url, request_params=request_params)
-        context.options.update(self.config)
         return context
 
     def start_task(self, context: task_context.TaskContext):
