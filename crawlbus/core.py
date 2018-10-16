@@ -130,7 +130,7 @@ class CrawlerPipeline(object):
         if self.config.fixed_cookie and self._init_cookie:
             self.session.cookies = self._init_cookie
 
-        logger.debug("{} -> {}".format(request.method, request.url))
+        logger.info("{} -> {}".format(request.method, request.url))
 
         request = self.handlers.hook_before_preparing_request(request)
         prepared_request = self.session.prepare_request(request)
@@ -159,8 +159,6 @@ class CrawlerPipeline(object):
 
                 # set finished
                 self._finished += 1
-                if self._finished >= self._started:
-                    self._have_started_event.clear()
 
             except queue.Empty:
                 continue
@@ -202,14 +200,16 @@ class CrawlerPipeline(object):
                 if self.config.domain_whitelist:
                     if domain not in self.config.domain_whitelist:
                         continue
-                if self.config.allow_to_crawl_subdomain:
-                    if netloc.endswith(self._init_netloc):
-                        pass
-                    else:
-                        continue
                 else:
-                    if netloc != self._init_netloc:
-                        continue
+                    if self.config.allow_to_crawl_subdomain:
+                        if netloc.endswith(self._init_netloc):
+                            pass
+                        else:
+                            continue
+                    else:
+                        if netloc != self._init_netloc:
+                            logger.debug("filtered by netloc: cur:{} != init:{}".format(netloc, self._init_netloc))
+                            continue
 
                 # 3.
                 if self.__extract_suffix(url) in self.config.suffix_blacklist:
@@ -224,6 +224,10 @@ class CrawlerPipeline(object):
                 self.worker_pool.execute(self.request, kwargs={
                     "request": request
                 })
+
+            # check whether the pipeline is finished.
+            if self._finished >= self._started:
+                self._have_started_event.clear()
 
         logger.info("dispatcher is finished.")
 
