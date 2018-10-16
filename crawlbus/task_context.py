@@ -5,8 +5,7 @@ import requests
 import threading
 import bs4
 from urllib.parse import urljoin, urlparse
-from . import reqfilter
-from . import outils
+from crawlbus.utils import reqfilter, outils
 from . import config
 
 global_config = config.global_config

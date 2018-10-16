@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # coding:utf-8
 import crawlbus
-from crawlbus import outils
+from crawlbus.utils import outils
 import logging
 
 logger = outils.get_logger("crawlbus")

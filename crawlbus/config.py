@@ -14,13 +14,14 @@ request_params:
   json:
 
 crawler_options:
+  fixed_cookie: false
   poolsize: 20
   callback_poolsize: 5
   url_simhash_distance: 2
   filter_dothtml: true
   ignore_param_value: false
   allow_fragment: false
-  
+  allow_to_crawl_subdomain: false
   allow_static_file_with_query: false
   
   domain_whitelist: []
@@ -28,7 +29,7 @@ crawler_options:
   
   suffix_blacklist: [
     ".pdf", ".zip",
-    ".docx", ".doc", ".ppt", "pptx",
+    ".docx", ".doc", ".ppt", ".pptx",
     ".jpg", ".png", ".gif", ".jpeg"
     # ".js", ".css"
   ]
@@ -60,6 +61,15 @@ class CrawlerConfig:
     def callback_poolsize(self):
         """"""
         return int(self._config['crawler_options']['callback_poolsize'])
+
+    @property
+    def fixed_cookie(self):
+        """"""
+        return bool(self._options.get("fixed_cookie", False))
+
+    @property
+    def allow_to_crawl_subdomain(self):
+        return bool(self._options.get("allow_to_crawl_subdomain", False))
 
     @property
     def url_simhash_distance(self):

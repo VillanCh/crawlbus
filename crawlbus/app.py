@@ -1,13 +1,9 @@
 #!/usr/bin/env python3
 # coding:utf-8
-import time
-import functools
 import logging
-import threading
 import uuid
 import queue
-from . import pool
-from . import outils
+from crawlbus.utils import pool, outils
 from . import task_context
 from . import knowledgebase
 from . import config

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import uuid
 import unittest
-import threading
+import time
 import traceback
 from threading import Thread, Event
 from queue import Queue, Empty
@@ -150,6 +150,8 @@ class Pool(object):
 
             if count > 2:
                 break
+            else:
+                time.sleep(1)
 
 
 def test(a, b, c):
