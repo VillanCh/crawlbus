@@ -14,15 +14,18 @@ request_params:
   json:
 
 crawler_options:
+  
+
   fixed_cookie: false
   poolsize: 20
-  callback_poolsize: 5
+
   url_simhash_distance: 2
   filter_dothtml: true
   ignore_param_value: false
   allow_fragment: false
   allow_to_crawl_subdomain: false
   allow_static_file_with_query: false
+  allow_fake_static_filter: true
   
   domain_whitelist: []
   domain_blacklist: []
@@ -56,11 +59,6 @@ class CrawlerConfig:
         return int(self._config["crawler_options"]['poolsize'])
 
     poolsize = crawler_poolsize
-
-    @property
-    def callback_poolsize(self):
-        """"""
-        return int(self._config['crawler_options']['callback_poolsize'])
 
     @property
     def fixed_cookie(self):
@@ -110,6 +108,10 @@ class CrawlerConfig:
     def allow_static_file_with_query(self):
         """"""
         return bool(self._options['allow_static_file_with_query'])
+
+    @property
+    def allow_fake_static_filter(self):
+        return bool(self._options.get("allow_fake_static_filter", False))
 
     def merge_config_from_file(self, config_file):
         """"""

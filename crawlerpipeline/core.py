@@ -45,10 +45,9 @@ class CrawlerPipelineHandler(object):
         pass
 
 
-class CrawlerPipelineSummary(object):
-
-    def __init__(self):
-        pass
+class CrawlerPipelineSummary(typing.NamedTuple):
+    current_finished_request_count: int
+    current_started_request_count: int
 
 
 def _null(*v, **kw):
@@ -90,9 +89,6 @@ class CrawlerPipeline(object):
         # domain
         self.domains = set()
 
-        # state summary
-        self.summary = CrawlerPipelineSummary()
-
         # counter
         self._started = 0
         self._finished = 0
@@ -116,9 +112,11 @@ class CrawlerPipeline(object):
 
         self.handlers.on_pipeline_starting()
 
-
     def get_summary(self):
-        return self.summary
+        return CrawlerPipelineSummary(
+            current_finished_request_count=self._finished,
+            current_started_request_count=self._started,
+        )
 
     def build_request(self, url, method="GET", headers=None, data=None, param=None,
                       auth=None, cookies=None):
@@ -220,7 +218,6 @@ class CrawlerPipeline(object):
                         pass
                     else:
                         continue
-
 
                 # 5. true for pass
                 if not self.handlers.extra_url_checker(url):
