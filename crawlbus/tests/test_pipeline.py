@@ -10,15 +10,15 @@ from ..core import CrawlerPipelineSummary
 
 class CrawlerPipelineHandlerDemo(CrawlerPipelineHandler):
 
-    def on_new_domain(self):
-        pass
+    def on_new_domain(self, domain):
+        print("curren domain: {}".format(domain))
 
 
 class PipelineTestCase(unittest.TestCase):
 
     def test_pipeline_basic(self):
-        pipeline = CrawlerPipeline()
-        pipeline.start(start_url="http://localhost:8080", method="GET",
+        pipeline = CrawlerPipeline(handler=CrawlerPipelineHandlerDemo)
+        pipeline.start(start_url="http://127.0.0.1:8080", method="GET",
                        headers=None, data=None, params=None, auth=None, cookies=None,)
 
         time.sleep(3)

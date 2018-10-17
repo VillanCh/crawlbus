@@ -32,7 +32,7 @@ class CrawlerPipelineHandler(object):
     def on_new_domain(self, domain: str):
         pass
 
-    def on_new_url(self, domain: str):
+    def on_new_url(self, url: str):
         pass
 
     def on_new_prepared_request(self, request: requests.PreparedRequest):
@@ -178,7 +178,8 @@ class CrawlerPipeline(object):
             # 1. remove duplicated urls (request_filter)
             # 2. check domain
             # 3. suffix filter
-            # 4. extra filter
+            # 4. allow static file with query or not
+            # 5. extra filter
             #
             for url in self.__find_all_urls(response):
                 logger.debug("checking: {}".format(url))
@@ -193,7 +194,7 @@ class CrawlerPipeline(object):
                 # 2.
                 domain, netloc = self.__extract_domainNnetloc(url)
                 if domain not in self.domains:
-                    self.handlers.on_new_url(domain)
+                    self.handlers.on_new_domain(domain)
                     self.domains.add(domain)
                 if domain in self.config.domain_blacklist:
                     continue
@@ -212,10 +213,16 @@ class CrawlerPipeline(object):
                             continue
 
                 # 3.
-                if self.__extract_suffix(url) in self.config.suffix_blacklist:
-                    continue
+                suffix, query = self.__extract_suffix(url)
+                if suffix in self.config.suffix_blacklist:
+                    # 4. config
+                    if self.config.allow_static_file_with_query and query:
+                        pass
+                    else:
+                        continue
 
-                # 4. true for pass
+
+                # 5. true for pass
                 if not self.handlers.extra_url_checker(url):
                     continue
 
@@ -281,8 +288,9 @@ class CrawlerPipeline(object):
 
     def __extract_suffix(self, url):
         path = urlparse(url).path
+        query = urlparse(url).query
         _, suffix = os.path.splitext(path)
-        return suffix
+        return suffix, query
 
     def _fake_execute(self, func, args=(), kwargs={}, id=None):
         self._old_execute(func, args, kwargs, id)
